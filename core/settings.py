@@ -10,28 +10,54 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+from datetime import timedelta
 from pathlib import Path
 
-import os 
+import os
+
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-load_dotenv(BASE_DIR.parent /".env")
+load_dotenv(BASE_DIR.parent / ".env")
 
 
+def env_bool(name, default=False):
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.lower() in {"1", "true", "yes", "on"}
 
+
+def env_list(name, default=None):
+    value = os.getenv(name)
+    if not value:
+        return default or []
+    return [item.strip() for item in value.split(",") if item.strip()]
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-c#sjwq5(+q63ay3i)h(#zfk&c_810h01snx$v_hh85vj&-2vq('
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise ImproperlyConfigured("Set the SECRET_KEY environment variable.")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env_bool("DEBUG", default=True)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env_list(
+    "ALLOWED_HOSTS",
+    default=["localhost", "127.0.0.1", ".railway.app", ".up.railway.app"],
+)
+
+CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS")
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", default=not DEBUG)
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "31536000" if not DEBUG else "0"))
 
 
 # Application definition
@@ -52,6 +78,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -86,11 +113,11 @@ WSGI_APPLICATION = 'core.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME'),
-        'PASSWORD': os.getenv('DB_PASS'),
-        'HOST': os.getenv('DB_HOST'),
-        'PORT': os.getenv('DB_PORT'),
-        'USER': os.getenv('DB_USER')
+        'NAME': os.getenv('DB_NAME') or os.getenv('PGDATABASE'),
+        'PASSWORD': os.getenv('DB_PASS') or os.getenv('PGPASSWORD'),
+        'HOST': os.getenv('DB_HOST') or os.getenv('PGHOST'),
+        'PORT': os.getenv('DB_PORT') or os.getenv('PGPORT'),
+        'USER': os.getenv('DB_USER') or os.getenv('PGUSER'),
     }
 }
 
@@ -130,5 +157,30 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STORAGES = {
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+    },
+}
 
 AUTH_USER_MODEL = 'accounts.CustomUser'
+
+GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', '')
+GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET', '')
+GOOGLE_REDIRECT_URI = os.getenv('GOOGLE_REDIRECT_URI', '')
+FRONTEND_GOOGLE_REDIRECT_URL = os.getenv('FRONTEND_GOOGLE_REDIRECT_URL', '')
+MOBILE_GOOGLE_REDIRECT_URL = os.getenv('MOBILE_GOOGLE_REDIRECT_URL', '')
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'accounts.authentication.LoggingJWTAuthentication',
+    ),
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'SIGNING_KEY': SECRET_KEY,
+}
