@@ -23,6 +23,16 @@ class UpdateOrderSerializer(serializers.Serializer):
     customer_note = serializers.CharField(required=False, allow_blank=True)
 
 
+class AdminUpdateOrderStatusSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(
+        choices=(
+            (Order.Status.APPROVED, "Approved"),
+            (Order.Status.REJECTED, "Rejected"),
+        )
+    )
+    admin_note = serializers.CharField(required=False, allow_blank=True)
+
+
 class OrderResponseSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
     order_type = serializers.CharField(read_only=True)

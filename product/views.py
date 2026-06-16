@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import SAFE_METHODS, IsAdminUser
 
 from .serializers import (
     AISubscriptionPlanCreateSerializer,
@@ -25,6 +26,11 @@ from .services import (
 
 
 class ProductListCreateApiView(APIView):
+    def get_permissions(self):
+        if self.request.method in SAFE_METHODS:
+            return []
+        return [IsAdminUser()]
+
     def get(self, request):
         try:
             products = get_all_products()
@@ -66,6 +72,11 @@ class ProductListCreateApiView(APIView):
 
 
 class ProductDetailsApiView(APIView):
+    def get_permissions(self):
+        if self.request.method in SAFE_METHODS:
+            return []
+        return [IsAdminUser()]
+
     def get(self, request, id):
         try:
             product = get_product(id)
@@ -142,6 +153,11 @@ class ProductDetailsApiView(APIView):
 
 
 class AISubscriptionPlanListCreateApiView(APIView):
+    def get_permissions(self):
+        if self.request.method in SAFE_METHODS:
+            return []
+        return [IsAdminUser()]
+
     def get(self, request):
         try:
             plans = get_all_ai_subscription_plans()
@@ -183,6 +199,11 @@ class AISubscriptionPlanListCreateApiView(APIView):
 
 
 class AISubscriptionPlanDetailsApiView(APIView):
+    def get_permissions(self):
+        if self.request.method in SAFE_METHODS:
+            return []
+        return [IsAdminUser()]
+
     def get(self, request, id):
         try:
             plan = get_ai_subscription_plan(id)

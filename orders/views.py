@@ -1,9 +1,10 @@
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .serializers import (
+    AdminUpdateOrderStatusSerializer,
     CreateAISubscriptionOrderSerializer,
     OrderResponseSerializer,
     UpdateOrderSerializer,
@@ -13,6 +14,7 @@ from .services import (
     create_ai_subscription_order,
     get_user_order,
     get_user_orders,
+    update_order_status_by_admin,
     update_user_order,
 )
 
@@ -128,6 +130,40 @@ class MyOrderDetailsApiView(APIView):
             return Response(
                 {
                     "message": "Order cancelled successfully",
+                },
+                status=status.HTTP_200_OK,
+            )
+        except LookupError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except ValueError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception:
+            return Response(
+                {"error": "An internal server error occurred"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class AdminOrderDetailsApiView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def put(self, request, id):
+        serializer = AdminUpdateOrderStatusSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            order = update_order_status_by_admin(id, serializer.validated_data)
+            result = OrderResponseSerializer(order)
+            return Response(
+                {
+                    "message": "Order updated successfully",
+                    "data": result.data,
                 },
                 status=status.HTTP_200_OK,
             )
