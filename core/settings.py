@@ -14,6 +14,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import os
+import sys
 
 from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
@@ -83,6 +84,7 @@ INSTALLED_APPS = [
     'product',
     'orders',
     'subscriptions',
+    'otp',
 ]
 
 MIDDLEWARE = [
@@ -120,16 +122,25 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME') or os.getenv('PGDATABASE'),
-        'PASSWORD': os.getenv('DB_PASS') or os.getenv('PGPASSWORD'),
-        'HOST': os.getenv('DB_HOST') or os.getenv('PGHOST'),
-        'PORT': os.getenv('DB_PORT') or os.getenv('PGPORT'),
-        'USER': os.getenv('DB_USER') or os.getenv('PGUSER'),
+if "test" in sys.argv or os.getenv("USE_SQLITE") == "1":
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.getenv("DB_NAME") or os.getenv("PGDATABASE"),
+            "PASSWORD": os.getenv("DB_PASS") or os.getenv("PGPASSWORD"),
+            "HOST": os.getenv("DB_HOST") or os.getenv("PGHOST"),
+            "PORT": os.getenv("DB_PORT") or os.getenv("PGPORT"),
+            "USER": os.getenv("DB_USER") or os.getenv("PGUSER"),
+        }
+    }
+
 
 
 # Password validation

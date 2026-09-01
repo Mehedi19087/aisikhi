@@ -3,3 +3,5 @@
 __pycache__/
 *.py[cod]
 staticfiles/
+*.sqlite3
+db.sqlite3
