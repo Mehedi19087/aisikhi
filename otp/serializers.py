@@ -3,8 +3,10 @@ from rest_framework import serializers
 
 class OTPReceiveSerializer(serializers.Serializer):
     """
-    Validates incoming SMS data. Supports standard fields ('phone_number', 'message')
-    as well as Android SMS Gateway Webhook aliases ('from', 'sender', 'phone', 'text', 'body').
+    Validates incoming SMS data.
+    - 'phone_number': Customer/Recipient mobile number (or fallback to sender)
+    - 'sender': SMS sender ID (e.g. 'IVAC_BD', 'from')
+    - 'message': SMS text body (or 'text', 'body')
     """
 
     def to_internal_value(self, data):
@@ -15,12 +17,22 @@ class OTPReceiveSerializer(serializers.Serializer):
 
         raw_phone = (
             data.get("phone_number")
+            or data.get("customer_phone")
             or data.get("phone")
-            or data.get("from")
-            or data.get("sender")
             or ""
         )
+        raw_sender = (
+            data.get("sender")
+            or data.get("from")
+            or ""
+        )
+
         phone_number = str(raw_phone).strip() if raw_phone is not None else ""
+        sender = str(raw_sender).strip() if raw_sender is not None else ""
+
+        # Fallback: if no phone_number provided, use sender
+        if not phone_number and sender:
+            phone_number = sender
 
         raw_message = (
             data.get("message")
@@ -36,6 +48,9 @@ class OTPReceiveSerializer(serializers.Serializer):
         elif len(phone_number) > 64:
             errors["phone_number"] = ["Phone number exceeds maximum length of 64 characters."]
 
+        if len(sender) > 64:
+            errors["sender"] = ["Sender identifier exceeds maximum length of 64 characters."]
+
         if not message:
             errors["message"] = ["Message text is required."]
         elif len(message) > 2000:
@@ -46,6 +61,7 @@ class OTPReceiveSerializer(serializers.Serializer):
 
         return {
             "phone_number": phone_number,
+            "sender": sender,
             "message": message,
         }
 
@@ -53,11 +69,13 @@ class OTPReceiveSerializer(serializers.Serializer):
 class OTPResponseSerializer(serializers.Serializer):
     success = serializers.BooleanField(read_only=True)
     phone_number = serializers.CharField(read_only=True)
+    sender = serializers.CharField(read_only=True)
     otp = serializers.CharField(read_only=True)
 
 
 class OTPRecordResponseSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
     phone_number = serializers.CharField(read_only=True)
+    sender = serializers.CharField(read_only=True)
     otp = serializers.CharField(read_only=True)
     created_at = serializers.DateTimeField(read_only=True)

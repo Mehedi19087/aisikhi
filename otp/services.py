@@ -114,9 +114,14 @@ def extract_otp(message: str) -> str | None:
     return None
 
 
-def store_otp(phone_number: str, otp: str, deduplicate_window_seconds: int = 120) -> OTPRecord:
+def store_otp(
+    phone_number: str,
+    otp: str,
+    sender: str = "",
+    deduplicate_window_seconds: int = 120,
+) -> OTPRecord:
     """
-    Stores phone_number and otp in the database.
+    Stores phone_number, sender, and otp in the database.
     If the same phone_number and otp were saved within deduplicate_window_seconds,
     reuses the recent record to prevent duplicate entries from SMS retries.
     """
@@ -132,24 +137,32 @@ def store_otp(phone_number: str, otp: str, deduplicate_window_seconds: int = 120
     )
 
     if existing is not None:
+        if sender and not existing.sender:
+            existing.sender = sender
+            existing.save(update_fields=["sender"])
         return existing
 
     return OTPRecord.objects.create(
         phone_number=phone_number,
+        sender=sender,
         otp=otp,
     )
 
 
-def process_otp_sms(phone_number: str, message: str) -> tuple[OTPRecord | None, str | None]:
+def process_otp_sms(
+    phone_number: str,
+    message: str,
+    sender: str = "",
+) -> tuple[OTPRecord | None, str | None]:
     """
-    Extracts OTP and persists the record.
+    Extracts OTP and persists the record with phone_number and sender.
     Returns (OTPRecord, otp_string) if successful, or (None, None) if no OTP was found.
     """
     otp = extract_otp(message)
     if not otp:
         return None, None
 
-    record = store_otp(phone_number=phone_number, otp=otp)
+    record = store_otp(phone_number=phone_number, otp=otp, sender=sender)
     return record, otp
 
 

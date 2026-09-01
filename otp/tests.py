@@ -78,6 +78,7 @@ class OTPReceiveAPITests(APITestCase):
             {
                 "success": True,
                 "phone_number": "01712345678",
+                "sender": "",
                 "otp": "739201",
             },
         )
@@ -101,6 +102,7 @@ class OTPReceiveAPITests(APITestCase):
             {
                 "success": True,
                 "phone_number": "IVAC_BD",
+                "sender": "",
                 "otp": "719321",
             },
         )
@@ -125,6 +127,7 @@ class OTPReceiveAPITests(APITestCase):
             {
                 "success": True,
                 "phone_number": "IVAC_BD",
+                "sender": "IVAC_BD",
                 "otp": "719321",
             },
         )
@@ -219,4 +222,22 @@ class OTPReceiveAPITests(APITestCase):
         self.assertEqual(response.data["count"], 2)
         self.assertEqual(len(response.data["data"]), 2)
         self.assertEqual(response.data["data"][0]["otp"], "719321")
+
+    def test_receive_customer_phone_and_sender_together(self):
+        payload = {
+            "phone_number": "01712345678",
+            "from": "IVAC_BD",
+            "text": "(IVACBD) For security, type the following sequence when prompted Seven-One-Nine-Three-Two-One .",
+        }
+
+        response = self.client.post(self.url, payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["phone_number"], "01712345678")
+        self.assertEqual(response.data["sender"], "IVAC_BD")
+        self.assertEqual(response.data["otp"], "719321")
+
+        record = OTPRecord.objects.get(phone_number="01712345678")
+        self.assertEqual(record.sender, "IVAC_BD")
+        self.assertEqual(record.otp, "719321")
+
 
