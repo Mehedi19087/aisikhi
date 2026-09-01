@@ -54,3 +54,10 @@ class OTPResponseSerializer(serializers.Serializer):
     success = serializers.BooleanField(read_only=True)
     phone_number = serializers.CharField(read_only=True)
     otp = serializers.CharField(read_only=True)
+
+
+class OTPRecordResponseSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True)
+    phone_number = serializers.CharField(read_only=True)
+    otp = serializers.CharField(read_only=True)
+    created_at = serializers.DateTimeField(read_only=True)

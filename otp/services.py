@@ -151,3 +151,10 @@ def process_otp_sms(phone_number: str, message: str) -> tuple[OTPRecord | None, 
 
     record = store_otp(phone_number=phone_number, otp=otp)
     return record, otp
+
+
+def get_latest_otps(limit: int = 20):
+    """
+    Returns latest OTP records ordered by created_at descending.
+    """
+    return OTPRecord.objects.all().order_by("-created_at")[:limit]

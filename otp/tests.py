@@ -208,3 +208,15 @@ class OTPReceiveAPITests(APITestCase):
         response2 = self.client.post(self.url, payload, format="json")
         self.assertEqual(response2.status_code, status.HTTP_200_OK)
         self.assertEqual(OTPRecord.objects.count(), 1)
+
+    def test_get_otp_list_returns_records(self):
+        OTPRecord.objects.create(phone_number="01712345678", otp="123456")
+        OTPRecord.objects.create(phone_number="IVAC_BD", otp="719321")
+
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["success"], True)
+        self.assertEqual(response.data["count"], 2)
+        self.assertEqual(len(response.data["data"]), 2)
+        self.assertEqual(response.data["data"][0]["otp"], "719321")
+

@@ -3,13 +3,42 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .serializers import OTPReceiveSerializer
-from .services import process_otp_sms
+from .serializers import OTPReceiveSerializer, OTPRecordResponseSerializer
+from .services import get_latest_otps, process_otp_sms
 
 
 class OTPReceiveAPIView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
+
+    def get(self, request):
+        """
+        Retrieves the latest OTP records for display in frontend dashboards.
+        Supports query params:
+        - ?limit=20 (default 20, max 100)
+        - ?phone_number=IVAC_BD (optional filter)
+        """
+        limit_param = request.query_params.get("limit", 20)
+        try:
+            limit = min(max(int(limit_param), 1), 100)
+        except (ValueError, TypeError):
+            limit = 20
+
+        phone_filter = request.query_params.get("phone_number", "").strip()
+
+        records = get_latest_otps(limit=limit)
+        if phone_filter:
+            records = records.filter(phone_number__icontains=phone_filter)
+
+        serializer = OTPRecordResponseSerializer(records, many=True)
+        return Response(
+            {
+                "success": True,
+                "count": len(serializer.data),
+                "data": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
 
     def post(self, request):
         serializer = OTPReceiveSerializer(data=request.data)
