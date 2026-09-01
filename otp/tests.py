@@ -129,7 +129,20 @@ class OTPReceiveAPITests(APITestCase):
             },
         )
 
-    def test_receive_otp_fails_when_no_otp_in_message(self):
+    def test_android_app_test_button_ping_returns_200_ok(self):
+        # When Android app presses "TEST", it sends test strings
+        payload = {
+            "from": "TestSender",
+            "text": "Test message from Android SMS Gateway",
+        }
+
+        response = self.client.post(self.url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["success"], True)
+        self.assertEqual(response.data["otp"], "TEST_OK")
+
+    def test_receive_otp_fails_when_no_otp_in_non_test_message(self):
         payload = {
             "phone_number": "01712345678",
             "message": "Welcome to our service without any code.",

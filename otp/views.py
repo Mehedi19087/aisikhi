@@ -18,12 +18,30 @@ class OTPReceiveAPIView(APIView):
         phone_number = serializer.validated_data["phone_number"]
         message = serializer.validated_data["message"]
 
+        # Check if this is a test ping from the Android app's "TEST" button
+        is_test = (
+            "test" in phone_number.lower()
+            or "test" in message.lower()
+            or "%text%" in message
+            or "%from%" in phone_number
+        )
+
         otp_record, otp = process_otp_sms(
             phone_number=phone_number,
             message=message,
         )
 
         if not otp:
+            if is_test:
+                return Response(
+                    {
+                        "success": True,
+                        "phone_number": phone_number,
+                        "otp": "TEST_OK",
+                        "message": "Webhook connection test successful.",
+                    },
+                    status=status.HTTP_200_OK,
+                )
             return Response(
                 {
                     "success": False,
